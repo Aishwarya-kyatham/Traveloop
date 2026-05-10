@@ -25,8 +25,11 @@ const AddDestinationModal = ({ tripId, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
-      <Card className="relative z-10 w-full max-w-lg shadow-glow">
+      {/* Visual Backdrop */}
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      
+      {/* Modal Card */}
+      <Card className="relative z-10 w-full max-w-lg max-h-[95vh] overflow-y-auto border-slate-700/50 bg-slate-900 shadow-2xl">
         <CardContent className="p-8">
           <div className="mb-6 flex items-center justify-between">
             <div>

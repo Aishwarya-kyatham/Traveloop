@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock3, IndianRupee, Plus, Shapes, X } from 'lucide-react';
+import { ChevronDown, Clock3, IndianRupee, Plus, Shapes, X } from 'lucide-react';
 import { useAddActivity } from '../../hooks/useItinerary';
 import Button from '../ui/Button';
 import Card, { CardContent } from '../ui/Card';
@@ -14,15 +14,27 @@ const AddActivityModal = ({ tripId, dayId, onClose }) => {
     cost: '',
   });
 
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
+
   const handleSubmit = (event) => {
     event.preventDefault();
+    
+    // Normalize time: Django TimeField is happiest with HH:MM:SS
+    let startTime = formData.start_time;
+    if (startTime && startTime.length === 5) {
+      startTime = `${startTime}:00`;
+    }
+
     addMutation.mutate(
       {
         day: dayId,
-        title: formData.title,
+        title: formData.title.trim(),
         category: formData.category,
-        start_time: formData.start_time || null,
-        cost: formData.cost || 0,
+        start_time: startTime || null,
+        cost: parseFloat(formData.cost) || 0,
       },
       { onSuccess: () => onClose() }
     );
@@ -30,8 +42,11 @@ const AddActivityModal = ({ tripId, dayId, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
-      <Card className="relative z-10 w-full max-w-lg shadow-glow">
+      {/* Visual Backdrop */}
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      
+      {/* Modal Card */}
+      <Card className="relative z-10 w-full max-w-lg max-h-[95vh] overflow-y-auto border-slate-700/50 bg-slate-900 shadow-2xl">
         <CardContent className="p-8">
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -44,24 +59,29 @@ const AddActivityModal = ({ tripId, dayId, onClose }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input label="Activity title" value={formData.title} onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))} placeholder="Sunset cruise" required />
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-200">Category</label>
-              <div className="relative">
-                <Shapes className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <select
-                  value={formData.category}
-                  onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-700/60 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
-                >
-                  <option value="food">Food</option>
-                  <option value="sightseeing">Sightseeing</option>
-                  <option value="transport">Transport</option>
-                  <option value="accommodation">Accommodation</option>
-                  <option value="shopping">Shopping</option>
-                  <option value="nightlife">Nightlife</option>
-                  <option value="other">Other</option>
-                </select>
+            <div className="grid gap-5 sm:grid-cols-[1fr_0.8fr]">
+              <Input label="Activity title" value={formData.title} onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))} placeholder="Sunset cruise" required />
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-200">Category</label>
+                <div className="relative">
+                  <Shapes className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <select
+                    value={formData.category}
+                    onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))}
+                    className="w-full appearance-none rounded-2xl border border-slate-700/60 bg-slate-900/40 py-3 pl-11 pr-10 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+                  >
+                    <option value="food" className="bg-slate-900">Food</option>
+                    <option value="sightseeing" className="bg-slate-900">Sightseeing</option>
+                    <option value="transport" className="bg-slate-900">Transport</option>
+                    <option value="accommodation" className="bg-slate-900">Accommodation</option>
+                    <option value="shopping" className="bg-slate-900">Shopping</option>
+                    <option value="nightlife" className="bg-slate-900">Nightlife</option>
+                    <option value="other" className="bg-slate-900">Other</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500">
+                    <ChevronDown className="h-4 w-4" /> 
+                  </div>
+                </div>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

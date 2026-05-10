@@ -69,7 +69,7 @@ export const useAddActivity = (tripId) => {
             if (day.id === newActivity.day) {
               return {
                 ...day,
-                activities: [...day.activities, { ...newActivity, id: crypto.randomUUID() }]
+                activities: [...day.activities, { ...newActivity, id: `temp-${Date.now()}` }]
               };
             }
             return day;
