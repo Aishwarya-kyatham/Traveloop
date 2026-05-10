@@ -6,9 +6,15 @@ const SUGGESTIONS = [
   { name: 'Goa', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=600&auto=format&fit=crop' },
   { name: 'Kerala', image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?q=80&w=600&auto=format&fit=crop' },
   { name: 'Jaipur', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Manali', image: 'https://images.unsplash.com/photo-1605649487212-4d4ce3e03108?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Ooty', image: 'https://images.unsplash.com/photo-1589181155998-3cebe2362de9?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Pondicherry', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?q=80&w=600&auto=format&fit=crop' }
+  { name: 'Manali', image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Ooty', image: 'https://images.unsplash.com/photo-1623345805780-8f01f714e65f?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Pondicherry', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Ladakh', image: 'https://picsum.photos/seed/ladakh/600/400' },
+  { name: 'Agra', image: 'https://picsum.photos/seed/agra/600/400' },
+  { name: 'Varanasi', image: 'https://picsum.photos/seed/varanasi/600/400' },
+  { name: 'Darjeeling', image: 'https://picsum.photos/seed/darjeeling/600/400' },
+  { name: 'Hampi', image: 'https://picsum.photos/seed/hampi/600/400' },
+  { name: 'Andaman', image: 'https://picsum.photos/seed/andaman/600/400' }
 ];
 
 const CreateTrip = () => {
@@ -56,9 +62,9 @@ const CreateTrip = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl mx-auto">
-        {/* Form Card */}
+    <div className="min-h-screen bg-slate-50 pt-24 pb-12">
+      {/* Form Section */}
+      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Plan a new trip</h1>
@@ -138,31 +144,31 @@ const CreateTrip = () => {
             </button>
           </form>
         </div>
+      </div>
 
-        {/* Suggestions Section */}
-        <div className="mt-12">
-          <h2 className="text-xl font-bold text-slate-900 mb-6 text-center">Suggestions for Places to Visit</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {SUGGESTIONS.map((suggestion) => (
-              <div 
-                key={suggestion.name}
-                onClick={() => handleSuggestionClick(suggestion.name)}
-                className="group relative h-32 rounded-xl overflow-hidden cursor-pointer transition-all hover:ring-4 hover:ring-blue-500/30"
-              >
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors z-10" />
-                <img 
-                  src={suggestion.image} 
-                  alt={suggestion.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <span className="text-white font-bold text-lg tracking-wide drop-shadow-md">
-                    {suggestion.name}
-                  </span>
-                </div>
+      {/* Suggestions Section (Full Width) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+        <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Suggestions for Places to Visit</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          {SUGGESTIONS.map((suggestion) => (
+            <div 
+              key={suggestion.name}
+              onClick={() => handleSuggestionClick(suggestion.name)}
+              className="group relative h-40 rounded-xl overflow-hidden cursor-pointer transition-all hover:ring-4 hover:ring-blue-500/30"
+            >
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors z-10" />
+              <img 
+                src={suggestion.image} 
+                alt={suggestion.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 transform-gpu"
+              />
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <span className="text-white font-bold text-lg tracking-wide drop-shadow-md">
+                  {suggestion.name}
+                </span>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
