@@ -26,12 +26,32 @@ class Trip(TimeStampedUUIDModel):
         ordering = ['-start_date']
 
 
+from datetime import timedelta
+
 class TripDestination(TimeStampedUUIDModel):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='destinations')
     city_name = models.CharField(max_length=255)
     arrival_date = models.DateField()
     departure_date = models.DateField()
     order_index = models.PositiveIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        if self.arrival_date and self.departure_date:
+            current_date = self.arrival_date
+            valid_dates = []
+            while current_date <= self.departure_date:
+                day, created = ItineraryDay.objects.get_or_create(
+                    destination=self,
+                    date=current_date
+                )
+                valid_dates.append(current_date)
+                current_date += timedelta(days=1)
+            
+            if not is_new:
+                ItineraryDay.objects.filter(destination=self).exclude(date__in=valid_dates).delete()
 
     def __str__(self):
         return f"{self.city_name} - {self.trip.title}"
@@ -41,6 +61,7 @@ class TripDestination(TimeStampedUUIDModel):
         indexes = [
             models.Index(fields=['trip', 'order_index']),
         ]
+
 
 
 class ItineraryDay(TimeStampedUUIDModel):
