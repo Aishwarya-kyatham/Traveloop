@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tripService from '../services/tripService';
+import { addDestination } from '../services/itineraryService';
 
 const SUGGESTIONS = [
   { name: 'Goa', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=600&auto=format&fit=crop' },
@@ -46,8 +47,19 @@ const CreateTrip = () => {
 
     try {
       setLoading(true);
+      // 1. Create the Trip
       const newTrip = await tripService.createTrip(formData);
-      navigate(`/workspace/${newTrip.id}`);
+      
+      // 2. Automatically create the first Destination based on the "place" chosen
+      await addDestination({
+        trip: newTrip.id,
+        city_name: formData.place,
+        arrival_date: formData.start_date,
+        departure_date: formData.end_date,
+      });
+
+      // 3. Navigate to the new Itinerary Builder screen
+      navigate(`/trip/${newTrip.id}`);
     } catch (err) {
       setError('Failed to create trip. Please try again.');
       console.error('Error creating trip:', err);
