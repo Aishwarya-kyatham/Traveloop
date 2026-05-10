@@ -1,27 +1,42 @@
 import React from 'react';
 
-const Button = ({ children, variant = 'primary', size = 'default', className = '', ...props }) => {
-  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:opacity-50 disabled:pointer-events-none select-none";
-
-  const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white shadow-lg shadow-blue-900/30",
-    secondary: "bg-[var(--card)] text-[var(--text)] border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--card-hover)] active:scale-[0.98]",
-    ghost: "text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-white/5",
-    outline: "border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white active:scale-[0.98]",
-  };
-
-  const sizes = {
-    sm: "h-8 px-3 text-xs",
-    default: "h-10 px-4 text-sm",
-    lg: "h-12 px-6 text-base",
-    xl: "h-14 px-8 text-lg",
-  };
-
-  return (
-    <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>
-      {children}
-    </button>
-  );
+const variants = {
+  primary:
+    'border border-indigo-400/30 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-500 text-white shadow-glow hover:scale-[1.01] hover:brightness-110',
+  secondary:
+    'glass-panel theme-text hover:border-slate-400/30 hover:bg-white/10',
+  ghost:
+    'border border-transparent bg-transparent theme-text-secondary hover:bg-white/5 hover:text-white',
+  danger:
+    'border border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/20',
 };
+
+const sizes = {
+  sm: 'h-9 px-3 text-xs rounded-xl',
+  default: 'h-11 px-4 text-sm rounded-2xl',
+  lg: 'h-12 px-5 text-sm rounded-2xl',
+  xl: 'h-14 px-6 text-base rounded-2xl',
+  icon: 'h-11 w-11 rounded-2xl',
+};
+
+const Button = ({ children, variant = 'primary', size = 'default', className = '', loading = false, ...props }) => (
+  <button
+    className={[
+      'inline-flex items-center justify-center gap-2 font-semibold transition duration-200',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
+      'disabled:pointer-events-none disabled:opacity-50',
+      variants[variant],
+      sizes[size],
+      className,
+    ].join(' ')}
+    disabled={loading || props.disabled}
+    {...props}
+  >
+    {loading ? (
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+    ) : null}
+    {children}
+  </button>
+);
 
 export default Button;

@@ -1,218 +1,221 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Search, SlidersHorizontal, ArrowUpDown, LayoutGrid,
-  Plus, Heart, Eye, Share2, MapPin, Calendar,
-  ChevronRight, Star
-} from 'lucide-react';
+import { CalendarDays, Filter, MapPinned, Plane, Plus, Search, Sparkles, Users } from 'lucide-react';
+import AppShell from '../components/layout/AppShell';
+import Button from '../components/ui/Button';
+import Card, { CardContent } from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import PageHeader from '../components/ui/PageHeader';
+import { useAuth } from '../context/AuthContext';
+import { destinationCatalog, travelCategories } from '../data/india';
+import { useTrips } from '../hooks/useItinerary';
+import { formatCompactCurrency, formatCurrency, formatDateRange, getTripStatus } from '../lib/formatters';
 
-/* ─── data ──────────────────────────────────────────────────── */
-const TOP_REGIONS = [
-  { id: 1, name: 'Bali', country: 'Indonesia', img: '/bali.png', rating: 4.9, tag: 'Tropical' },
-  { id: 2, name: 'Paris', country: 'France', img: '/paris.png', rating: 4.8, tag: 'Romantic' },
-  { id: 3, name: 'Tokyo', country: 'Japan', img: '/tokyo.png', rating: 4.9, tag: 'Urban' },
-  { id: 4, name: 'Santorini', country: 'Greece', img: '/santorini.png', rating: 4.7, tag: 'Scenic' },
-  { id: 5, name: 'Maldives', country: 'Indian Ocean', img: '/maldives.png', rating: 5.0, tag: 'Luxury' },
-];
-
-const PREV_TRIPS = [
-  {
-    id: 1, title: 'El Nido Guide', dest: 'Philippines',
-    img: '/bali.png', author: 'Nata', likes: 3, views: 249,
-    date: 'Mar 12 – Mar 19',
-  },
-  {
-    id: 2, title: 'London Highlights', dest: 'United Kingdom',
-    img: '/paris.png', author: 'libby', likes: 3, views: 182,
-    date: 'Jan 5 – Jan 12',
-  },
-  {
-    id: 3, title: '1 day in Gdańsk', dest: 'Poland',
-    img: '/santorini.png', author: 'Emijia Bar', likes: 4, views: 235,
-    date: 'Nov 20 – Nov 21',
-  },
-];
-
-/* ─── sub-components ─────────────────────────────────────────── */
-const RegionCard = ({ region }) => (
-  <div className="region-card">
-    <div className="region-card__img-wrap">
-      <img src={region.img} alt={region.name} className="region-card__img" />
-      <span className="region-card__tag">{region.tag}</span>
-    </div>
-    <div className="region-card__body">
-      <div className="region-card__name">{region.name}</div>
-      <div className="region-card__country">
-        <MapPin size={11} /> {region.country}
-      </div>
-      <div className="region-card__rating">
-        <Star size={11} fill="currentColor" /> {region.rating}
-      </div>
-    </div>
-  </div>
-);
-
-const TripCard = ({ trip }) => (
-  <div className="trip-card">
-    <div className="trip-card__img-wrap">
-      <img src={trip.img} alt={trip.title} className="trip-card__img" />
-      <div className="trip-card__overlay">
-        <button className="trip-card__action" title="Share">
-          <Share2 size={13} /> Share
-        </button>
-        <button className="trip-card__action trip-card__action--icon" title="More">
-          ···
-        </button>
-      </div>
-    </div>
-    <div className="trip-card__body">
-      <h4 className="trip-card__title">{trip.title}</h4>
-      <p className="trip-card__date">
-        <Calendar size={12} /> {trip.date}
-      </p>
-      <div className="trip-card__footer">
-        <span className="trip-card__author">{trip.author[0]}</span>
-        <span className="trip-card__meta">
-          <Heart size={12} /> {trip.likes}
-        </span>
-        <span className="trip-card__meta">
-          <Eye size={12} /> {trip.views}
-        </span>
-      </div>
-    </div>
-  </div>
-);
-
-/* ─── main page ──────────────────────────────────────────────── */
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
+  const { data: trips = [], isLoading, error } = useTrips();
   const [search, setSearch] = useState('');
-  const [groupBy, setGroupBy] = useState(false);
-  const [filterOpen, setFilter] = useState(false);
-  const [sortOpen, setSort] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('access');
-      if (!token) { navigate('/login'); return; }
-      try {
-        const res = await fetch('/api/auth/me/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) setUser(await res.json());
-        else {
-          localStorage.removeItem('access');
-          localStorage.removeItem('refresh');
-          navigate('/login');
-        }
-      } catch { navigate('/login'); }
-    };
-    fetchUser();
-  }, [navigate]);
+  const filteredTrips = useMemo(() => {
+    return trips.filter((trip) => trip.title.toLowerCase().includes(search.toLowerCase()));
+  }, [trips, search]);
 
+  const featuredDestinations = useMemo(() => {
+    if (selectedCategory === 'All') return destinationCatalog.slice(0, 6);
+    return destinationCatalog.filter((item) => item.category === selectedCategory).slice(0, 6);
+  }, [selectedCategory]);
 
-
-  if (!user) return null;
+  const upcomingTrips = filteredTrips.filter((trip) => getTripStatus(trip) !== 'completed').slice(0, 3);
 
   return (
-    <div className="db-root">
+    <AppShell>
+      <PageHeader
+        eyebrow="Explore dashboard"
+        title={`Namaste${user?.first_name ? `, ${user.first_name}` : ''}. Ready to plan the next trip?`}
+        description="Discover Indian destinations, track your active plans, and jump back into shared itineraries without losing context."
+        actions={<Button onClick={() => navigate('/create-trip')}><Plus className="h-4 w-4" /> Plan Trip</Button>}
+      />
 
-      {/* ── Banner ── */}
-      <section className="db-banner">
-        <img src="/banner.png" alt="Travel banner" className="db-banner__img" />
-        <div className="db-banner__overlay" />
-        <div className="db-banner__content">
-          <h1 className="db-banner__greeting">
-            Welcome back, <span className="db-banner__name">{user.first_name || user.username}</span> 👋
-          </h1>
-          <p className="db-banner__sub">Where are you heading next?</p>
-        </div>
-
-      </section>
-
-      {/* ── Search / Toolbar ── */}
-      <section className="db-toolbar-wrap">
-        <div className="db-toolbar">
-          <div className="db-search">
-            <Search size={16} className="db-search__icon" />
-            <input
-              id="dashboard-search"
-              className="db-search__input"
-              placeholder="Search destinations, trips, guides…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card className="overflow-hidden">
+          <CardContent className="relative min-h-[320px] p-0">
+            <img
+              src="https://images.unsplash.com/photo-1506461883276-594a12b11cf3?q=80&w=1600&auto=format&fit=crop"
+              alt="India travel banner"
+              className="absolute inset-0 h-full w-full object-cover opacity-45"
             />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0b0f1a] via-[#0b0f1a]/75 to-[#0b0f1a]/35" />
+            <div className="relative flex h-full flex-col justify-between p-8">
+              <div>
+                <div className="section-label mb-4"><Sparkles className="h-3.5 w-3.5" /> India-first planning</div>
+                <h2 className="max-w-2xl text-4xl font-extrabold text-white">From Goa weekends to Ladakh circuits, plan every detail in one premium workflow.</h2>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">Keep itinerary, budget, checklist, and notes synced for group trips, family holidays, and college getaways.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="glass-panel rounded-3xl p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Avg. trip budget</div>
+                  <div className="mt-2 text-xl font-bold text-white">{formatCompactCurrency(24500)}</div>
+                </div>
+                <div className="glass-panel rounded-3xl p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Popular format</div>
+                  <div className="mt-2 text-xl font-bold text-white">Friends + family</div>
+                </div>
+                <div className="glass-panel rounded-3xl p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Best for</div>
+                  <div className="mt-2 text-xl font-bold text-white">Budget-conscious travel</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center gap-3 rounded-3xl border border-slate-700/60 bg-white/[0.03] px-4 py-3">
+              <Search className="h-4 w-4 text-slate-500" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search your trips or plans"
+                className="w-full bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
+              />
+            </div>
+            <div className="mb-6 flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {['All', ...travelCategories].map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setSelectedCategory(category)}
+                  className={[
+                    'rounded-full px-3 py-2 text-xs font-semibold transition',
+                    selectedCategory === category
+                      ? 'bg-indigo-500/15 text-white'
+                      : 'border border-slate-700/60 bg-white/[0.03] text-slate-400 hover:text-white',
+                  ].join(' ')}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            <div className="mt-8 grid gap-3">
+              {[
+                { label: 'Open trips', value: filteredTrips.length || 0 },
+                { label: 'Destinations tracked', value: filteredTrips.reduce((total, trip) => total + (trip.destinations?.length || 0), 0) },
+                { label: 'Shared travellers', value: 'Crew-ready' },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center justify-between rounded-3xl border border-slate-700/60 bg-white/[0.03] px-4 py-4">
+                  <span className="text-sm text-slate-400">{stat.label}</span>
+                  <span className="text-lg font-bold text-white">{stat.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <h2 className="text-3xl font-extrabold text-white">Top Indian destinations</h2>
+            <p className="mt-2 text-sm text-slate-500">Curated for the way Indian travellers search, compare, and budget.</p>
           </div>
-          <div className="db-toolbar__actions">
-            <button
-              id="btn-groupby"
-              className={`db-toolbar__btn${groupBy ? ' db-toolbar__btn--active' : ''}`}
-              onClick={() => setGroupBy(v => !v)}
-            >
-              <LayoutGrid size={14} /> Group by
-            </button>
-            <button
-              id="btn-filter"
-              className={`db-toolbar__btn${filterOpen ? ' db-toolbar__btn--active' : ''}`}
-              onClick={() => setFilter(v => !v)}
-            >
-              <SlidersHorizontal size={14} /> Filter
-            </button>
-            <button
-              id="btn-sortby"
-              className={`db-toolbar__btn${sortOpen ? ' db-toolbar__btn--active' : ''}`}
-              onClick={() => setSort(v => !v)}
-            >
-              <ArrowUpDown size={14} /> Sort by
-            </button>
-          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {featuredDestinations.map((destination) => (
+            <Card key={destination.name} hover className="overflow-hidden">
+              <div className="relative h-52">
+                <img src={destination.image} alt={destination.name} className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f1a] via-[#0b0f1a]/25 to-transparent" />
+                <div className="absolute left-5 top-5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">{destination.category}</div>
+                <div className="absolute inset-x-5 bottom-5">
+                  <div className="text-2xl font-bold text-white">{destination.name}</div>
+                  <div className="text-sm text-slate-300">{destination.blurb}</div>
+                </div>
+              </div>
+              <CardContent className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Starter budget</div>
+                  <div className="mt-2 text-lg font-bold text-white">{formatCompactCurrency(destination.price)}</div>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => navigate('/create-trip')}>Plan trip</Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 
-      <div className="db-body">
-
-        {/* ── Top Regional Selections ── */}
-        <section className="db-section">
-          <div className="db-section__header">
-            <h2 className="db-section__title">Top Regional Selections</h2>
-            <button className="db-section__see-all" id="btn-see-all-regions">
-              See all <ChevronRight size={14} />
-            </button>
+      <section className="mt-10">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <h2 className="text-3xl font-extrabold text-white">Your trips</h2>
+            <p className="mt-2 text-sm text-slate-500">A clean overview of active plans, upcoming getaways, and budget-aware itineraries.</p>
           </div>
-          <div className="db-regions">
-            {TOP_REGIONS.map(r => <RegionCard key={r.id} region={r} />)}
+        </div>
+
+        {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((item) => <div key={item} className="glass-panel h-56 animate-pulse rounded-[28px]" />)}
           </div>
-        </section>
-
-        {/* ── Previous Trips ── */}
-        <section className="db-section">
-          <div className="db-section__header">
-            <h2 className="db-section__title">Previous Trips</h2>
-            <button className="db-section__see-all" id="btn-see-all-trips">
-              See all <ChevronRight size={14} />
-            </button>
+        ) : error ? (
+          <EmptyState icon={MapPinned} title="Trips could not be loaded" description="We hit a snag while fetching your plans. Please refresh and try again." />
+        ) : upcomingTrips.length === 0 ? (
+          <EmptyState
+            icon={CalendarDays}
+            title="No trips yet"
+            description="Create your first itinerary to unlock budget tracking, checklists, notes, and a shared trip view."
+            action={<Button onClick={() => navigate('/create-trip')}>Create your first trip</Button>}
+          />
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {upcomingTrips.map((trip) => {
+              const totalCost = trip.destinations?.flatMap((destination) => destination.days || []).flatMap((day) => day.activities || []).reduce((sum, activity) => sum + Number(activity.cost || 0), 0) || 0;
+              return (
+                <Card key={trip.id} hover className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-semibold text-indigo-200">{getTripStatus(trip)}</div>
+                        <h3 className="mt-4 text-2xl font-bold text-white">{trip.title}</h3>
+                      </div>
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04] text-indigo-200">
+                        <Plane className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <div className="mt-6 grid gap-3">
+                      <div className="flex items-center gap-3 text-sm text-slate-400"><CalendarDays className="h-4 w-4 text-indigo-300" /> {formatDateRange(trip.start_date, trip.end_date)}</div>
+                      <div className="flex items-center gap-3 text-sm text-slate-400"><MapPinned className="h-4 w-4 text-indigo-300" /> {trip.destinations?.length || 0} destinations added</div>
+                      <div className="flex items-center gap-3 text-sm text-slate-400"><Users className="h-4 w-4 text-indigo-300" /> Group-friendly planning layout</div>
+                    </div>
+                    <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-5">
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Current spend</div>
+                        <div className="mt-2 font-bold text-white">{formatCurrency(totalCost)}</div>
+                      </div>
+                      <Button variant="secondary" size="sm" onClick={() => navigate(`/trip/${trip.id}`)}>Open trip</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
+        )}
+      </section>
 
-          {PREV_TRIPS.length === 0 ? (
-            <div className="db-empty">
-              <p>You haven't created anything yet. <span className="db-empty__link">Plan a new trip.</span></p>
-            </div>
-          ) : (
-            <div className="db-trips">
-              {PREV_TRIPS.map(t => <TripCard key={t.id} trip={t} />)}
-            </div>
-          )}
-        </section>
-
-      </div>
-
-      {/* ── FAB ── */}
-      <button className="db-fab" id="btn-plan-trip" onClick={() => navigate('/create-trip')}>
-        <Plus size={16} /> Plan a trip
-      </button>
-
-    </div>
+      <Button
+        className="fixed bottom-6 right-6 z-40 rounded-full px-6"
+        size="lg"
+        onClick={() => navigate('/create-trip')}
+      >
+        <Plus className="h-4 w-4" /> Plan Trip
+      </Button>
+    </AppShell>
   );
 };
 

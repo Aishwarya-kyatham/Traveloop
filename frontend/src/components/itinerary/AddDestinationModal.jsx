@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
+import { CalendarDays, MapPin, Plus, X } from 'lucide-react';
 import { useAddDestination } from '../../hooks/useItinerary';
+import Button from '../ui/Button';
+import Card, { CardContent } from '../ui/Card';
+import Input from '../ui/Input';
 
 const AddDestinationModal = ({ tripId, onClose }) => {
   const addMutation = useAddDestination(tripId);
@@ -9,75 +13,46 @@ const AddDestinationModal = ({ tripId, onClose }) => {
     departure_date: '',
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.city_name || !formData.arrival_date || !formData.departure_date) return;
-    
-    addMutation.mutate({ trip: tripId, ...formData }, {
-      onSuccess: () => {
-        onClose();
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    addMutation.mutate(
+      { trip: tripId, ...formData },
+      {
+        onSuccess: () => onClose(),
       }
-    });
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <h3 className="text-xl font-bold text-white mb-6">Add Destination</h3>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">City Name</label>
-            <input 
-              required
-              type="text" 
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-              value={formData.city_name}
-              onChange={e => setFormData({...formData, city_name: e.target.value})}
-              placeholder="e.g. Paris"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
+      <Card className="relative z-10 w-full max-w-lg shadow-glow">
+        <CardContent className="p-8">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Arrival</label>
-              <input 
-                required
-                type="date" 
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={formData.arrival_date}
-                onChange={e => setFormData({...formData, arrival_date: e.target.value})}
-              />
+              <div className="text-2xl font-bold text-white">Add destination</div>
+              <div className="mt-1 text-sm text-slate-500">Expand your itinerary timeline with the next stop.</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Departure</label>
-              <input 
-                required
-                type="date" 
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={formData.departure_date}
-                onChange={e => setFormData({...formData, departure_date: e.target.value})}
-              />
-            </div>
-          </div>
-          
-          <div className="flex space-x-3 pt-4">
-            <button 
-              type="button" 
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              disabled={addMutation.isPending}
-              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              {addMutation.isPending ? 'Saving...' : 'Save'}
+            <button type="button" onClick={onClose} className="rounded-2xl border border-slate-700/60 p-3 text-slate-400">
+              <X className="h-4 w-4" />
             </button>
           </div>
-        </form>
-      </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input label="Destination name" value={formData.city_name} onChange={(event) => setFormData((current) => ({ ...current, city_name: event.target.value }))} icon={MapPin} placeholder="Jaipur" required />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Arrival date" type="date" value={formData.arrival_date} onChange={(event) => setFormData((current) => ({ ...current, arrival_date: event.target.value }))} icon={CalendarDays} required />
+              <Input label="Departure date" type="date" value={formData.departure_date} onChange={(event) => setFormData((current) => ({ ...current, departure_date: event.target.value }))} icon={CalendarDays} required />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
+              <Button type="submit" className="flex-1" loading={addMutation.isPending}>
+                <Plus className="h-4 w-4" /> Add
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

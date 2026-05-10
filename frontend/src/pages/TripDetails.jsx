@@ -1,106 +1,128 @@
 import React, { useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useTrip } from '../hooks/useItinerary';
-import DestinationCard from '../components/itinerary/DestinationCard';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, CalendarDays, IndianRupee, MapPinned, Plus } from 'lucide-react';
 import AddDestinationModal from '../components/itinerary/AddDestinationModal';
+import DestinationCard from '../components/itinerary/DestinationCard';
+import AppShell from '../components/layout/AppShell';
+import TripTabs from '../components/layout/TripTabs';
+import Button from '../components/ui/Button';
+import Card, { CardContent } from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import PageHeader from '../components/ui/PageHeader';
+import { useTrip } from '../hooks/useItinerary';
+import { daysBetweenInclusive, formatCurrency, formatDateRange } from '../lib/formatters';
 
 const TripDetails = () => {
   const { tripId } = useParams();
   const { data: trip, isLoading, isError } = useTrip(tripId);
   const [isDestModalOpen, setIsDestModalOpen] = useState(false);
 
-  const totalCost = useMemo(() => {
-    if (!trip || !trip.destinations) return 0;
-    return trip.destinations
-      .flatMap(d => d.days)
-      .flatMap(d => d.activities)
-      .reduce((sum, act) => sum + Number(act.cost || 0), 0);
+  const totals = useMemo(() => {
+    if (!trip) return { cost: 0, days: 0 };
+    return {
+      cost: (trip.destinations || []).flatMap((destination) => destination.days || []).flatMap((day) => day.activities || []).reduce((sum, activity) => sum + Number(activity.cost || 0), 0),
+      days: daysBetweenInclusive(trip.start_date, trip.end_date),
+    };
   }, [trip]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
+      <AppShell className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+        <div className="glass-panel rounded-[28px] px-6 py-5 text-sm text-slate-300">Loading your itinerary...</div>
+      </AppShell>
     );
   }
 
   if (isError || !trip) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center flex-col">
-        <h2 className="text-2xl font-bold text-white mb-4">Trip not found</h2>
-        <Link to="/dashboard" className="text-indigo-400 hover:underline">Return to Dashboard</Link>
-      </div>
+      <AppShell>
+        <EmptyState icon={MapPinned} title="Trip not found" description="We could not find this itinerary. It may have been removed or is no longer available." />
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pt-24 pb-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Header Section */}
-        <div className="mb-10 flex justify-between items-end">
-          <div>
-            <Link to="/dashboard" className="text-sm text-gray-400 hover:text-white mb-2 inline-flex items-center">
-              &larr; Back to Dashboard
-            </Link>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">{trip.title}</h1>
-            <p className="text-gray-400 mt-2">
-              {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Total Trip Cost</p>
-            <p className="text-3xl font-bold text-green-400">${totalCost.toFixed(2)}</p>
-            {trip.budget_limit && (
-              <p className="text-xs text-gray-500 mt-1">Budget: ${Number(trip.budget_limit).toFixed(2)}</p>
-            )}
-          </div>
+    <AppShell>
+      <Link to="/dashboard" className="mb-5 inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to dashboard
+      </Link>
+
+      <PageHeader
+        eyebrow="Trip planner"
+        title={trip.title}
+        description={`${formatDateRange(trip.start_date, trip.end_date)} · ${trip.destinations?.length || 0} destinations · ${totals.days} days`}
+        actions={<Button onClick={() => setIsDestModalOpen(true)}><Plus className="h-4 w-4" /> Add destination</Button>}
+      />
+
+      <TripTabs tripId={tripId} active="itinerary" />
+
+      <section className="grid gap-8 lg:grid-cols-[320px_1fr]">
+        {/* Sidebar Left: Trip Pulse & Stats */}
+        <div className="flex flex-col gap-6">
+          <Card className="border-indigo-500/10 bg-indigo-500/5 shadow-2xl">
+            <CardContent className="p-6">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-6">Trip Pulse</div>
+              <div className="grid gap-4">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:bg-white/[0.05]">
+                  <div className="flex items-center gap-3 text-slate-400 mb-2">
+                    <CalendarDays className="h-4 w-4 text-indigo-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Duration</span>
+                  </div>
+                  <div className="text-2xl font-black text-white">{totals.days} Days</div>
+                </div>
+                
+                <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 transition-all hover:bg-white/[0.05]">
+                  <div className="flex items-center gap-3 text-slate-400 mb-2">
+                    <MapPinned className="h-4 w-4 text-indigo-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Destinations</span>
+                  </div>
+                  <div className="text-2xl font-black text-white">{trip.destinations?.length || 0}</div>
+                </div>
+                
+                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 transition-all hover:bg-indigo-500/20 shadow-lg shadow-indigo-950/20">
+                  <div className="flex items-center gap-3 text-indigo-300 mb-2">
+                    <IndianRupee className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Total Spend</span>
+                  </div>
+                  <div className="text-3xl font-black text-white">{formatCurrency(totals.cost)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/5 bg-slate-900/40">
+            <CardContent className="p-6">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Planner flow</div>
+              <p className="text-sm leading-relaxed text-slate-400 font-medium">
+                Add destinations first, fill each day with activities, then refine your budget, checklist, and notes using the tabs above.
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Destinations Timeline */}
-        <div className="space-y-6 relative">
-          {/* Vertical connecting line */}
-          <div className="absolute left-8 top-10 bottom-10 w-0.5 bg-indigo-500/20 -z-10"></div>
-          
-          {trip.destinations.length === 0 ? (
-            <div className="bg-white/5 border border-dashed border-white/20 rounded-2xl p-12 text-center">
-              <p className="text-gray-400 mb-4">Your itinerary is empty.</p>
-              <button 
-                onClick={() => setIsDestModalOpen(true)}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
-              >
-                Start Planning
-              </button>
-            </div>
+        {/* Main Timeline Right */}
+        <div className="flex flex-col gap-8">
+          {(trip.destinations || []).length === 0 ? (
+            <EmptyState
+              icon={MapPinned}
+              title="Start your itinerary timeline"
+              description="Add your first destination to generate day blocks for activities, notes, and budget tracking."
+              action={<Button variant="primary" onClick={() => setIsDestModalOpen(true)}>Add first destination</Button>}
+            />
           ) : (
-            trip.destinations.map((dest) => (
-              <DestinationCard key={dest.id} tripId={tripId} destination={dest} />
-            ))
+            <div className="space-y-8">
+              {trip.destinations.map((destination, index) => (
+                <div key={destination.id} className="relative">
+                  <DestinationCard tripId={tripId} destination={destination} index={index} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
+      </section>
 
-        {/* Bottom Actions */}
-        {trip.destinations.length > 0 && (
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => setIsDestModalOpen(true)}
-              className="inline-flex items-center px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              Add Next Destination
-            </button>
-          </div>
-        )}
-
-      </div>
-
-      {isDestModalOpen && (
-        <AddDestinationModal tripId={tripId} onClose={() => setIsDestModalOpen(false)} />
-      )}
-    </div>
+      {isDestModalOpen ? <AddDestinationModal tripId={tripId} onClose={() => setIsDestModalOpen(false)} /> : null}
+    </AppShell>
   );
 };
 

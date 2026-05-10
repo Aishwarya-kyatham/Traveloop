@@ -1,170 +1,228 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import {
-  Plane, Map, Users, Settings, LogOut, User,
-  ChevronDown, Bell, BookMarked
-} from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronDown, Laptop, LogOut, Map, Menu, Moon, Plane, Sun, User2, X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import Button from './Button';
+import Container from './Container';
+
+const guestLinks = [
+  { label: 'Why Traveloop', href: '/#features' },
+  { label: 'Destinations', href: '/#destinations' },
+  { label: 'Pricing', href: '/#pricing' },
+];
+
+const appLinks = [
+  { label: 'Explore', path: '/dashboard', icon: Map },
+  { label: 'My Trips', path: '/trips', icon: Plane },
+  { label: 'Profile', path: '/profile', icon: User2 },
+];
 
 const Navbar = () => {
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const [user, setUser]           = useState(null);
-  const [dropOpen, setDropOpen]   = useState(false);
-  const [loading, setLoading]     = useState(true);
-  const dropRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
-  /* ── fetch user on every route change ── */
-  useEffect(() => {
-    const token = localStorage.getItem('access');
-    if (!token) { setUser(null); setLoading(false); return; }
-
-    fetch('/api/auth/me/', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setUser(data))
-      .catch(() => { setUser(null); })
-      .finally(() => setLoading(false));
-  }, [location.pathname]);
-
-  /* ── close dropdown on outside click ── */
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropRef.current && !dropRef.current.contains(e.target)) {
-        setDropOpen(false);
+  React.useEffect(() => {
+    const handleClick = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
-    setUser(null);
-    setDropOpen(false);
+  React.useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
+
+  const initials = useMemo(() => {
+    const name = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.username || 'T';
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+  }, [user]);
+
+  const onLogout = () => {
+    logout();
     navigate('/login');
   };
 
-  const isActive = (path) => location.pathname === path;
+  const onAnchorClick = (href) => {
+    if (href.startsWith('/#') && location.pathname !== '/') {
+      navigate(href);
+      return;
+    }
+    const target = document.querySelector(href.replace('/', ''));
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const navLinkCls = (path) =>
-    `nav-tab${isActive(path) ? ' nav-tab--active' : ''}`;
+  const themeIcon = theme === 'system' ? Laptop : resolvedTheme === 'light' ? Sun : Moon;
+  const ThemeIcon = themeIcon;
+  const nextTheme = theme === 'system' ? 'dark' : theme === 'dark' ? 'light' : 'system';
 
   return (
-    <header className="navbar">
-      <div className="navbar__inner">
-
-        {/* ── Logo ── */}
-        {location.pathname !== '/create-trip' && (
-          <Link to={user ? '/dashboard' : '/'} className="navbar__logo">
-            <div className="navbar__logo-icon">
-              <Plane size={16} className="text-white" />
+    <header className="theme-nav fixed inset-x-0 top-0 z-50">
+      <Container className="flex h-20 items-center justify-between">
+        <div className="flex items-center gap-8">
+          <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-500 to-indigo-600 shadow-glow">
+              <Plane className="h-5 w-5 text-white" />
             </div>
-            <span className="navbar__logo-text">Traveloop</span>
+            <div>
+              <div className="font-display text-lg font-extrabold theme-text">Traveloop</div>
+              <div className="text-[11px] uppercase tracking-[0.28em] theme-text-muted">India Travel OS</div>
+            </div>
           </Link>
-        )}
 
-        {/* ── Nav links ── */}
-        {location.pathname !== '/create-trip' && (
-          <nav className="navbar__nav">
-            {user ? (
-              /* Authenticated nav */
-              <>
-                <Link to="/dashboard"  className={navLinkCls('/dashboard')}>
-                  <Map size={15} /> Trips
+          <nav className="hidden items-center gap-2 md:flex">
+            {(isAuthenticated ? appLinks : guestLinks).map((item) => (
+              'path' in item ? (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={[
+                    'rounded-2xl px-4 py-2 text-sm font-semibold transition',
+                    location.pathname === item.path
+                      ? 'bg-indigo-500/12 theme-text'
+                      : 'theme-text-muted hover:bg-white/5 hover:text-white',
+                  ].join(' ')}
+                >
+                  {item.label}
                 </Link>
-                <Link to="/community"  className={navLinkCls('/community')}>
-                  <Users size={15} /> Community
-                </Link>
-              </>
-            ) : (
-              /* Public nav */
-              <>
-                <a href="/#features"      className="nav-link">Features</a>
-                <a href="/#testimonials"  className="nav-link">Reviews</a>
-                <a href="/#stats"         className="nav-link">About</a>
-              </>
-            )}
+              ) : (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => onAnchorClick(item.href)}
+                  className="rounded-2xl px-4 py-2 text-sm font-semibold theme-text-muted transition hover:bg-white/5 hover:text-white"
+                >
+                  {item.label}
+                </button>
+              )
+            ))}
           </nav>
-        )}
+        </div>
 
-        {/* ── Right side ── */}
-        <div className="navbar__right">
-          {loading ? null : user ? (
-            <>
-              {/* Notification bell */}
-              <button className="navbar__icon-btn" id="btn-notifications" title="Notifications">
-                <Bell size={17} />
+        <div className="hidden items-center gap-3 md:flex">
+          <button
+            type="button"
+            onClick={() => setTheme(nextTheme)}
+            title={`Theme: ${theme}`}
+            className="glass-panel flex h-11 w-11 items-center justify-center rounded-2xl theme-text-secondary"
+          >
+            <ThemeIcon className="h-4 w-4" />
+          </button>
+          {isAuthenticated ? (
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setProfileOpen((value) => !value)}
+                className="glass-panel flex items-center gap-3 rounded-2xl px-3 py-2 text-left"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-sm font-bold text-white">
+                  {initials}
+                </div>
+                <div className="max-w-[140px]">
+                  <div className="truncate text-sm font-semibold theme-text">
+                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username}
+                  </div>
+                  <div className="truncate text-xs theme-text-muted">{user?.email}</div>
+                </div>
+                <ChevronDown className="h-4 w-4 theme-text-muted" />
               </button>
 
-              {/* Profile avatar + dropdown */}
-              <div className="navbar__profile" ref={dropRef}>
-                <button
-                  id="btn-profile-avatar"
-                  className="navbar__avatar"
-                  onClick={() => setDropOpen(v => !v)}
-                  title="Account menu"
-                >
-                  <span className="navbar__avatar-letter">
-                    {(user.first_name || user.username || 'U')[0].toUpperCase()}
-                  </span>
-                  <ChevronDown
-                    size={13}
-                    className={`navbar__avatar-caret${dropOpen ? ' navbar__avatar-caret--open' : ''}`}
-                  />
-                </button>
-
-                {/* Dropdown */}
-                {dropOpen && (
-                  <div className="navbar__dropdown" id="profile-dropdown">
-                    {/* User info */}
-                    <div className="navbar__drop-header">
-                      <div className="navbar__drop-avatar">
-                        {(user.first_name || user.username || 'U')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="navbar__drop-name">
-                          {user.first_name
-                            ? `${user.first_name} ${user.last_name || ''}`.trim()
-                            : user.username}
-                        </div>
-                        <div className="navbar__drop-email">{user.email}</div>
-                      </div>
-                    </div>
-
-                    <div className="navbar__drop-divider" />
-
-                    <button className="navbar__drop-item" id="btn-my-trips"
-                      onClick={() => { navigate('/dashboard'); setDropOpen(false); }}>
-                      <BookMarked size={14} /> My Trips
-                    </button>
-                    <button className="navbar__drop-item" id="btn-settings"
-                      onClick={() => { navigate('/settings'); setDropOpen(false); }}>
-                      <Settings size={14} /> Settings
-                    </button>
-
-                    <div className="navbar__drop-divider" />
-
-                    <button className="navbar__drop-item navbar__drop-item--danger"
-                      id="btn-logout" onClick={handleLogout}>
-                      <LogOut size={14} /> Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+              {profileOpen ? (
+                <div className="glass-panel absolute right-0 mt-3 w-56 rounded-3xl p-2">
+                  <Link to="/trips" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm theme-text-secondary transition hover:bg-white/5 hover:text-white">
+                    <Plane className="h-4 w-4" />
+                    My Trips
+                  </Link>
+                  <Link to="/profile" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm theme-text-secondary transition hover:bg-white/5 hover:text-white">
+                    <User2 className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-red-200 transition hover:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : (
-            /* Logged-out CTAs */
             <>
-              <Link to="/login" className="navbar__ghost-btn" id="btn-login">
-                Log in
-              </Link>
-              <Link to="/register" className="navbar__cta-btn" id="btn-signup">
-                Get started
-              </Link>
+              <Link to="/login"><Button variant="ghost">Login</Button></Link>
+              <Link to="/register"><Button>Get Started</Button></Link>
             </>
           )}
         </div>
-      </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((value) => !value)}
+          className="theme-surface-soft flex h-11 w-11 items-center justify-center rounded-2xl theme-text-secondary md:hidden"
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </Container>
+
+      {menuOpen ? (
+        <div className="theme-nav border-t md:hidden">
+          <Container className="flex flex-col gap-2 py-4">
+            <button
+              type="button"
+              onClick={() => setTheme(nextTheme)}
+              className="theme-surface-soft rounded-2xl px-4 py-3 text-left text-sm font-semibold theme-text-secondary"
+            >
+              Theme: {theme}
+            </button>
+            {(isAuthenticated ? appLinks : guestLinks).map((item) => (
+              'path' in item ? (
+                <Link key={item.path} to={item.path} className="rounded-2xl px-4 py-3 text-sm font-semibold theme-text-secondary hover:bg-white/5 hover:text-white">
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => onAnchorClick(item.href)}
+                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold theme-text-secondary hover:bg-white/5 hover:text-white"
+                >
+                  {item.label}
+                </button>
+              )
+            ))}
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="rounded-2xl px-4 py-3 text-sm font-semibold theme-text-secondary hover:bg-white/5 hover:text-white">
+                  Account settings
+                </Link>
+                <button type="button" onClick={onLogout} className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-200 hover:bg-red-500/10">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <div className="flex gap-3 pt-2">
+                <Link to="/login" className="flex-1"><Button variant="secondary" className="w-full">Login</Button></Link>
+                <Link to="/register" className="flex-1"><Button className="w-full">Get Started</Button></Link>
+              </div>
+            )}
+          </Container>
+        </div>
+      ) : null}
     </header>
   );
 };

@@ -97,9 +97,11 @@ class ResendOTPView(APIView):
         return Response({'message': 'A new code has been sent to your email.'})
 
 
-class UserDetailView(generics.RetrieveAPIView):
+class UserDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = UserSerializer
+    http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_object(self):
         return self.request.user
+
