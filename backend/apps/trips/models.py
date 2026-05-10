@@ -1,0 +1,73 @@
+import uuid
+from django.db import models
+from django.conf import settings
+
+class TimeStampedUUIDModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class Trip(TimeStampedUUIDModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='trips')
+    title = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    cover_image = models.URLField(blank=True, null=True)
+    budget_limit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"
+
+    class Meta:
+        ordering = ['-start_date']
+
+
+class TripDestination(TimeStampedUUIDModel):
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='destinations')
+    city_name = models.CharField(max_length=255)
+    arrival_date = models.DateField()
+    departure_date = models.DateField()
+    order_index = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.city_name} - {self.trip.title}"
+
+    class Meta:
+        ordering = ['order_index']
+        indexes = [
+            models.Index(fields=['trip', 'order_index']),
+        ]
+
+
+class ItineraryDay(TimeStampedUUIDModel):
+    destination = models.ForeignKey(TripDestination, on_delete=models.CASCADE, related_name='days')
+    date = models.DateField()
+
+    def __str__(self):
+        return f"Day {self.date} in {self.destination.city_name}"
+
+    class Meta:
+        ordering = ['date']
+        indexes = [
+            models.Index(fields=['destination', 'date']),
+        ]
+
+
+class Activity(TimeStampedUUIDModel):
+    day = models.ForeignKey(ItineraryDay, on_delete=models.CASCADE, related_name='activities')
+    title = models.CharField(max_length=255)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    place_id = models.CharField(max_length=255, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.title} on {self.day.date}"
+
+    class Meta:
+        ordering = ['start_time']
