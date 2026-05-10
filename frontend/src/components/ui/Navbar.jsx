@@ -54,34 +54,38 @@ const Navbar = () => {
       <div className="navbar__inner">
 
         {/* ── Logo ── */}
-        <Link to={user ? '/dashboard' : '/'} className="navbar__logo">
-          <div className="navbar__logo-icon">
-            <Plane size={16} className="text-white" />
-          </div>
-          <span className="navbar__logo-text">Traveloop</span>
-        </Link>
+        {location.pathname !== '/create-trip' && (
+          <Link to={user ? '/dashboard' : '/'} className="navbar__logo">
+            <div className="navbar__logo-icon">
+              <Plane size={16} className="text-white" />
+            </div>
+            <span className="navbar__logo-text">Traveloop</span>
+          </Link>
+        )}
 
         {/* ── Nav links ── */}
-        <nav className="navbar__nav">
-          {user ? (
-            /* Authenticated nav */
-            <>
-              <Link to="/dashboard"  className={navLinkCls('/dashboard')}>
-                <Map size={15} /> Trips
-              </Link>
-              <Link to="/community"  className={navLinkCls('/community')}>
-                <Users size={15} /> Community
-              </Link>
-            </>
-          ) : (
-            /* Public nav */
-            <>
-              <a href="/#features"      className="nav-link">Features</a>
-              <a href="/#testimonials"  className="nav-link">Reviews</a>
-              <a href="/#stats"         className="nav-link">About</a>
-            </>
-          )}
-        </nav>
+        {location.pathname !== '/create-trip' && (
+          <nav className="navbar__nav">
+            {user ? (
+              /* Authenticated nav */
+              <>
+                <Link to="/dashboard"  className={navLinkCls('/dashboard')}>
+                  <Map size={15} /> Trips
+                </Link>
+                <Link to="/community"  className={navLinkCls('/community')}>
+                  <Users size={15} /> Community
+                </Link>
+              </>
+            ) : (
+              /* Public nav */
+              <>
+                <a href="/#features"      className="nav-link">Features</a>
+                <a href="/#testimonials"  className="nav-link">Reviews</a>
+                <a href="/#stats"         className="nav-link">About</a>
+              </>
+            )}
+          </nav>
+        )}
 
         {/* ── Right side ── */}
         <div className="navbar__right">

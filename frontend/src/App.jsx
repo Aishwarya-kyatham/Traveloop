@@ -7,6 +7,8 @@ import Register from './pages/Register';
 import VerifyOTP from './pages/VerifyOTP';
 import Dashboard from './pages/Dashboard';
 
+import CreateTrip from './pages/CreateTrip';
+
 function App() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: light)');
@@ -27,6 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/verify" element={<VerifyOTP />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/create-trip" element={<CreateTrip />} />
       </Routes>
     </Router>
   );
