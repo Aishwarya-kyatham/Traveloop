@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import * as itineraryService from '../services/itineraryService';
+import tripService from '../services/tripService';
+
+export const useTrips = () => {
+  return useQuery({
+    queryKey: ['trips'],
+    queryFn: tripService.getTrips,
+  });
+};
 
 export const useTrip = (tripId) => {
   return useQuery({
@@ -112,6 +120,9 @@ export const useDeleteActivity = (tripId) => {
     onError: (err, activityId, context) => {
       queryClient.setQueryData(['trip', tripId], context.previousTrip);
       toast.error('Failed to delete activity');
+    },
+    onSuccess: () => {
+      toast.success('Activity removed');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });

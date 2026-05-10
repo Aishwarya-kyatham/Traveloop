@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import tripService from '../services/tripService';
+import { ArrowRight, CalendarDays, IndianRupee, MapPin, Users2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import AppShell from '../components/layout/AppShell';
+import Button from '../components/ui/Button';
+import Card, { CardContent } from '../components/ui/Card';
+import Input from '../components/ui/Input';
+import PageHeader from '../components/ui/PageHeader';
+import { destinationCatalog, quickTripTemplates } from '../data/india';
 import { addDestination } from '../services/itineraryService';
-
-const SUGGESTIONS = [
-  { name: 'Goa', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Kerala', image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Jaipur', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Manali', image: 'https://images.unsplash.com/photo-1605649487212-4d4ce3e03108?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Ooty', image: 'https://images.unsplash.com/photo-1589181155998-3cebe2362de9?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Pondicherry', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?q=80&w=600&auto=format&fit=crop' }
-];
+import tripService from '../services/tripService';
+import { formatCompactCurrency } from '../lib/formatters';
 
 const CreateTrip = () => {
   const navigate = useNavigate();
@@ -18,39 +18,49 @@ const CreateTrip = () => {
     title: '',
     place: '',
     start_date: '',
-    end_date: ''
+    end_date: '',
+    budget_limit: '',
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
+  const handleChange = (event) => {
+    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
-  const handleSuggestionClick = (placeName) => {
-    setFormData({ ...formData, place: placeName, title: formData.title || `Trip to ${placeName}` });
-    setError('');
+  const handleSuggestionClick = (destination) => {
+    setFormData((current) => ({
+      ...current,
+      title: current.title || `${destination.name} ${destination.vibe.toLowerCase()}`,
+      place: destination.name,
+      budget_limit: current.budget_limit || destination.price,
+    }));
+    toast.success(`${destination.name} added to your draft`);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!formData.title || !formData.place || !formData.start_date || !formData.end_date) {
-      setError('Please fill in all fields.');
+      toast.error('Please complete the trip basics before continuing.');
       return;
     }
-    
+
     if (new Date(formData.end_date) < new Date(formData.start_date)) {
-      setError('End date cannot be before start date.');
+      toast.error('End date cannot be before the start date.');
       return;
     }
 
     try {
       setLoading(true);
-      // 1. Create the Trip
-      const newTrip = await tripService.createTrip(formData);
-      
-      // 2. Automatically create the first Destination based on the "place" chosen
+      const loadingToast = toast.loading('Creating your trip workspace...');
+      const newTrip = await tripService.createTrip({
+        title: formData.title,
+        place: formData.place,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        budget_limit: formData.budget_limit || null,
+      });
+
       await addDestination({
         trip: newTrip.id,
         city_name: formData.place,
@@ -58,126 +68,114 @@ const CreateTrip = () => {
         departure_date: formData.end_date,
       });
 
-      // 3. Navigate to the new Itinerary Builder screen
+      toast.dismiss(loadingToast);
+      toast.success('Trip created successfully');
       navigate(`/trip/${newTrip.id}`);
-    } catch (err) {
-      setError('Failed to create trip. Please try again.');
-      console.error('Error creating trip:', err);
+    } catch (error) {
+      toast.error('Could not create the trip. Please try again.');
+      console.error(error);
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl mx-auto">
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Plan a new trip</h1>
-            <p className="mt-2 text-slate-500">Where do you want to go?</p>
-          </div>
+    <AppShell>
+      <PageHeader
+        eyebrow="New trip"
+        title="Create a polished trip workspace in a minute."
+        description="Start with your destination, dates, and an optional INR budget. Traveloop will set up the itinerary shell for you."
+      />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm text-center">
-                {error}
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="shadow-glow">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <Input label="Trip title" name="title" value={formData.title} onChange={handleChange} placeholder="Goa year-end getaway" required />
+              <Input label="Primary destination" name="place" value={formData.place} onChange={handleChange} icon={MapPin} placeholder="Goa" required />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Start date" type="date" name="start_date" value={formData.start_date} onChange={handleChange} icon={CalendarDays} required />
+                <Input label="End date" type="date" name="end_date" value={formData.end_date} onChange={handleChange} icon={CalendarDays} required />
               </div>
-            )}
-            
-            <div className="space-y-4">
+              <Input label="Budget limit (optional)" type="number" name="budget_limit" value={formData.budget_limit} onChange={handleChange} icon={IndianRupee} placeholder="25000" hint="Use INR for a cleaner cost dashboard later." />
+              <Button type="submit" className="w-full" size="lg" loading={loading}>
+                Create trip workspace <ArrowRight className="h-4 w-4" />
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-6">
+          <Card>
+            <CardContent className="p-8">
+              <div className="section-label mb-4">Quick templates</div>
+              <div className="grid gap-4">
+                {quickTripTemplates.map((template) => (
+                  <button
+                    key={template.title}
+                    type="button"
+                    onClick={() => setFormData((current) => ({
+                      ...current,
+                      title: template.title,
+                      place: template.destination,
+                      budget_limit: template.budget,
+                    }))}
+                    className="rounded-3xl border border-slate-700/60 bg-white/[0.03] p-4 text-left transition hover:border-slate-500/40 hover:bg-white/[0.05]"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-lg font-bold text-white">{template.title}</div>
+                        <div className="mt-1 text-sm text-slate-500">{template.destination} · {template.audience}</div>
+                      </div>
+                      <div className="text-sm font-semibold text-indigo-200">{formatCompactCurrency(template.budget)}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-8">
+              <div className="section-label mb-4">Popular Indian picks</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {destinationCatalog.slice(0, 6).map((destination) => (
+                  <button
+                    key={destination.name}
+                    type="button"
+                    onClick={() => handleSuggestionClick(destination)}
+                    className="overflow-hidden rounded-3xl border border-slate-700/60 bg-white/[0.03] text-left transition hover:border-slate-500/40"
+                  >
+                    <div className="relative h-32">
+                      <img src={destination.image} alt={destination.name} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f1a] to-transparent" />
+                      <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
+                        {destination.category}
+                      </div>
+                      <div className="absolute inset-x-4 bottom-4">
+                        <div className="text-lg font-bold text-white">{destination.name}</div>
+                        <div className="text-xs text-slate-300">{destination.vibe}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-start gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-indigo-500/12 text-indigo-200">
+                <Users2 className="h-5 w-5" />
+              </div>
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-1">Trip Title</label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="e.g., Summer in Goa"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+                <div className="text-lg font-bold text-white">Designed for group coordination</div>
+                <div className="mt-2 text-sm leading-7 text-slate-400">Once the trip is created, you can move straight into itinerary planning, budget tracking, checklist prep, and trip notes without switching to a different UI pattern.</div>
               </div>
-
-              <div>
-                <label htmlFor="place" className="block text-sm font-medium text-slate-700 mb-1">Select Place</label>
-                <input
-                  type="text"
-                  id="place"
-                  name="place"
-                  value={formData.place}
-                  onChange={handleChange}
-                  placeholder="Where are you going?"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="start_date" className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    id="start_date"
-                    name="start_date"
-                    value={formData.start_date}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="end_date" className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    id="end_date"
-                    name="end_date"
-                    value={formData.end_date}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3.5 px-4 rounded-xl text-white font-medium text-lg transition-all
-                ${loading 
-                  ? 'bg-blue-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-sm hover:shadow'
-                }`}
-            >
-              {loading ? 'Creating...' : 'Create Trip'}
-            </button>
-          </form>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Suggestions Section */}
-        <div className="mt-12">
-          <h2 className="text-xl font-bold text-slate-900 mb-6 text-center">Suggestions for Places to Visit</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {SUGGESTIONS.map((suggestion) => (
-              <div 
-                key={suggestion.name}
-                onClick={() => handleSuggestionClick(suggestion.name)}
-                className="group relative h-32 rounded-xl overflow-hidden cursor-pointer transition-all hover:ring-4 hover:ring-blue-500/30"
-              >
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors z-10" />
-                <img 
-                  src={suggestion.image} 
-                  alt={suggestion.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <span className="text-white font-bold text-lg tracking-wide drop-shadow-md">
-                    {suggestion.name}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 };
 

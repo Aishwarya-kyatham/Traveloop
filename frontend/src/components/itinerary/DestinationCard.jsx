@@ -1,55 +1,66 @@
 import React, { useMemo } from 'react';
+import { CalendarDays, MapPin, Trash2 } from 'lucide-react';
 import DayBlock from './DayBlock';
 import { useDeleteDestination } from '../../hooks/useItinerary';
+import Card, { CardContent } from '../ui/Card';
+import { formatCurrency, formatDateRange } from '../../lib/formatters';
 
-const DestinationCard = ({ tripId, destination }) => {
+const DestinationCard = ({ tripId, destination, index }) => {
   const deleteMutation = useDeleteDestination(tripId);
 
-  const destCost = useMemo(() => {
-    return destination.days.flatMap(d => d.activities).reduce((sum, act) => sum + Number(act.cost || 0), 0);
+  const destinationCost = useMemo(() => {
+    return (destination.days || []).flatMap((day) => day.activities || []).reduce((sum, activity) => sum + Number(activity.cost || 0), 0);
   }, [destination.days]);
 
-  const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${destination.city_name}? All days and activities will be lost.`)) {
-      deleteMutation.mutate(destination.id);
-    }
-  };
-
   return (
-    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-8 shadow-xl">
-      <div className="flex justify-between items-start mb-6 pb-4 border-b border-white/10">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-1">{destination.city_name}</h2>
-          <p className="text-gray-400 text-sm">
-            {new Date(destination.arrival_date).toLocaleDateString()} - {new Date(destination.departure_date).toLocaleDateString()}
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Est. Cost</p>
-            <p className="text-lg font-bold text-green-400">${destCost.toFixed(2)}</p>
+    <Card className="overflow-hidden">
+      <div className="border-b border-slate-800/80 bg-white/[0.02] px-6 py-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[22px] bg-indigo-500/12 text-lg font-bold text-indigo-200">
+              {index + 1}
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-indigo-300" />
+                <h3 className="text-3xl font-bold text-white">{destination.city_name}</h3>
+              </div>
+              <div className="mt-3 flex items-center gap-3 text-sm text-slate-400">
+                <CalendarDays className="h-4 w-4 text-indigo-300" />
+                {formatDateRange(destination.arrival_date, destination.departure_date)}
+              </div>
+            </div>
           </div>
-          <button 
-            onClick={handleDelete}
-            className="text-red-400/70 hover:text-red-400 transition-colors p-2"
-            title="Delete Destination"
-          >
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="rounded-3xl border border-slate-700/60 bg-white/[0.03] px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Destination spend</div>
+              <div className="mt-2 text-lg font-bold text-white">{formatCurrency(destinationCost)}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Delete ${destination.city_name} and all its activities?`)) {
+                  deleteMutation.mutate(destination.id);
+                }
+              }}
+              className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-200"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="space-y-4">
-        {destination.days.map(day => (
-          <DayBlock key={day.id} tripId={tripId} day={day} />
-        ))}
-        {destination.days.length === 0 && (
-          <p className="text-gray-500 text-sm italic">Dates are invalid, no days generated.</p>
+      <CardContent className="grid gap-4 p-6">
+        {(destination.days || []).length ? (
+          destination.days.map((day) => <DayBlock key={day.id} tripId={tripId} day={day} />)
+        ) : (
+          <div className="rounded-3xl border border-dashed border-slate-700/60 bg-white/[0.02] px-4 py-10 text-center text-sm text-slate-500">
+            No dates or activities exist for this destination yet.
+          </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

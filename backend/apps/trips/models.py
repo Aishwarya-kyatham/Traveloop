@@ -1,4 +1,5 @@
 import uuid
+import secrets
 from django.db import models
 from django.conf import settings
 
@@ -18,6 +19,13 @@ class Trip(TimeStampedUUIDModel):
     end_date = models.DateField()
     cover_image = models.URLField(blank=True, null=True)
     budget_limit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_public = models.BooleanField(default=False)
+    share_token = models.CharField(max_length=64, unique=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.share_token:
+            self.share_token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} ({self.user.username})"
@@ -79,8 +87,18 @@ class ItineraryDay(TimeStampedUUIDModel):
 
 
 class Activity(TimeStampedUUIDModel):
+    CATEGORY_CHOICES = [
+        ('food', 'Food & Drink'),
+        ('sightseeing', 'Sightseeing'),
+        ('transport', 'Transport'),
+        ('accommodation', 'Accommodation'),
+        ('shopping', 'Shopping'),
+        ('nightlife', 'Nightlife'),
+        ('other', 'Other'),
+    ]
     day = models.ForeignKey(ItineraryDay, on_delete=models.CASCADE, related_name='activities')
     title = models.CharField(max_length=255)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other')
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     place_id = models.CharField(max_length=255, blank=True, null=True)
@@ -92,3 +110,36 @@ class Activity(TimeStampedUUIDModel):
 
     class Meta:
         ordering = ['start_time']
+
+
+class PackingItem(TimeStampedUUIDModel):
+    CATEGORY_CHOICES = [
+        ('clothing', 'Clothing'),
+        ('documents', 'Documents'),
+        ('toiletries', 'Toiletries'),
+        ('electronics', 'Electronics'),
+        ('medications', 'Medications'),
+        ('other', 'Other'),
+    ]
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='packing_items')
+    label = models.CharField(max_length=200)
+    is_checked = models.BooleanField(default=False)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other')
+
+    def __str__(self):
+        return f"{self.label} ({'✓' if self.is_checked else '○'})"
+
+    class Meta:
+        ordering = ['category', 'created_at']
+
+
+class TripNote(TimeStampedUUIDModel):
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='notes')
+    content = models.TextField()
+
+    def __str__(self):
+        return f"Note for {self.trip.title} at {self.created_at}"
+
+    class Meta:
+        ordering = ['-created_at']
+

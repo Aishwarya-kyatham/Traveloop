@@ -1,90 +1,82 @@
 import React, { useState } from 'react';
+import { Clock3, IndianRupee, Plus, Shapes, X } from 'lucide-react';
 import { useAddActivity } from '../../hooks/useItinerary';
+import Button from '../ui/Button';
+import Card, { CardContent } from '../ui/Card';
+import Input from '../ui/Input';
 
 const AddActivityModal = ({ tripId, dayId, onClose }) => {
   const addMutation = useAddActivity(tripId);
   const [formData, setFormData] = useState({
     title: '',
+    category: 'other',
     start_time: '',
     cost: '',
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) return;
-    
-    addMutation.mutate({ 
-      day: dayId, 
-      title: formData.title,
-      start_time: formData.start_time || null,
-      cost: formData.cost || 0
-    }, {
-      onSuccess: () => {
-        onClose();
-      }
-    });
-    // For optimistic UI, we close immediately anyway to feel fast
-    onClose();
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    addMutation.mutate(
+      {
+        day: dayId,
+        title: formData.title,
+        category: formData.category,
+        start_time: formData.start_time || null,
+        cost: formData.cost || 0,
+      },
+      { onSuccess: () => onClose() }
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <h3 className="text-xl font-bold text-white mb-6">Add Activity</h3>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-            <input 
-              required
-              type="text" 
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              placeholder="e.g. Visit Louvre Museum"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
+      <Card className="relative z-10 w-full max-w-lg shadow-glow">
+        <CardContent className="p-8">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Time (Optional)</label>
-              <input 
-                type="time" 
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={formData.start_time}
-                onChange={e => setFormData({...formData, start_time: e.target.value})}
-              />
+              <div className="text-2xl font-bold text-white">Add activity</div>
+              <div className="mt-1 text-sm text-slate-500">Drop a timed plan into this day and keep the itinerary moving.</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Cost ($)</label>
-              <input 
-                type="number" 
-                min="0"
-                step="0.01"
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={formData.cost}
-                onChange={e => setFormData({...formData, cost: e.target.value})}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          
-          <div className="flex space-x-3 pt-4">
-            <button 
-              type="button" 
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-            >
-              Save
+            <button type="button" onClick={onClose} className="rounded-2xl border border-slate-700/60 p-3 text-slate-400">
+              <X className="h-4 w-4" />
             </button>
           </div>
-        </form>
-      </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input label="Activity title" value={formData.title} onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))} placeholder="Sunset cruise" required />
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-200">Category</label>
+              <div className="relative">
+                <Shapes className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <select
+                  value={formData.category}
+                  onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-700/60 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+                >
+                  <option value="food">Food</option>
+                  <option value="sightseeing">Sightseeing</option>
+                  <option value="transport">Transport</option>
+                  <option value="accommodation">Accommodation</option>
+                  <option value="shopping">Shopping</option>
+                  <option value="nightlife">Nightlife</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Start time" type="time" value={formData.start_time} onChange={(event) => setFormData((current) => ({ ...current, start_time: event.target.value }))} icon={Clock3} />
+              <Input label="Estimated cost (INR)" type="number" value={formData.cost} onChange={(event) => setFormData((current) => ({ ...current, cost: event.target.value }))} icon={IndianRupee} placeholder="800" />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
+              <Button type="submit" className="flex-1" loading={addMutation.isPending}>
+                <Plus className="h-4 w-4" /> Add activity
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

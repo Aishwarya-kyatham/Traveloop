@@ -1,14 +1,20 @@
-from rest_framework import viewsets, permissions
-from .models import Trip, TripDestination, ItineraryDay, Activity
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+
+from .models import Trip, TripDestination, ItineraryDay, Activity, PackingItem, TripNote
 from .serializers import (
     TripSerializer, TripDestinationSerializer,
-    ItineraryDaySerializer, ActivitySerializer
+    ItineraryDaySerializer, ActivitySerializer,
+    PackingItemSerializer, TripNoteSerializer,
+    PublicTripSerializer,
 )
 
+
 class IsOwner(permissions.BasePermission):
-    """
-    Custom permission to only allow owners of an object to access it.
-    """
     def has_object_permission(self, request, view, obj):
         if hasattr(obj, 'user'):
             return obj.user == request.user
@@ -28,13 +34,19 @@ class TripViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Trip.objects.filter(user=self.request.user).prefetch_related(
             'destinations__days__activities'
-        )
+        ).select_related('user')
 
+    @action(detail=True, methods=['post'], url_path='toggle-public')
+    def toggle_public(self, request, pk=None):
+        trip = self.get_object()
+        trip.is_public = not trip.is_public
+        trip.save(update_fields=['is_public'])
+        return Response({
+            'is_public': trip.is_public,
+            'share_token': trip.share_token,
+            'share_url': f"/share/{trip.share_token}",
+        })
 
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.db import transaction
 
 class TripDestinationViewSet(viewsets.ModelViewSet):
     serializer_class = TripDestinationSerializer
@@ -78,3 +90,41 @@ class ActivityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Activity.objects.filter(day__destination__trip__user=self.request.user)
+
+
+class PackingItemViewSet(viewsets.ModelViewSet):
+    serializer_class = PackingItemSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        trip_id = self.request.query_params.get('trip')
+        qs = PackingItem.objects.filter(trip__user=self.request.user)
+        if trip_id:
+            qs = qs.filter(trip_id=trip_id)
+        return qs
+
+
+class TripNoteViewSet(viewsets.ModelViewSet):
+    serializer_class = TripNoteSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        trip_id = self.request.query_params.get('trip')
+        qs = TripNote.objects.filter(trip__user=self.request.user)
+        if trip_id:
+            qs = qs.filter(trip_id=trip_id)
+        return qs
+
+
+class PublicTripView(APIView):
+    """No auth required — returns public trip by share_token."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token):
+        trip = get_object_or_404(
+            Trip.objects.prefetch_related('destinations__days__activities'),
+            share_token=token,
+            is_public=True,
+        )
+        serializer = PublicTripSerializer(trip)
+        return Response(serializer.data)

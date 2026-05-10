@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Trip, TripDestination, ItineraryDay, Activity
+from .models import Trip, TripDestination, ItineraryDay, Activity, PackingItem, TripNote
 from rest_framework.exceptions import ValidationError
+
 
 class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,9 +46,32 @@ class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = '__all__'
-        read_only_fields = ('id', 'user', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'user', 'share_token', 'created_at', 'updated_at')
         
     def create(self, validated_data):
         user = self.context['request'].user
         validated_data['user'] = user
         return super().create(validated_data)
+
+
+# Public (unauthenticated) serializer — strips user info
+class PublicTripSerializer(serializers.ModelSerializer):
+    destinations = TripDestinationSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Trip
+        fields = ('id', 'title', 'start_date', 'end_date', 'cover_image', 'destinations')
+
+
+class PackingItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PackingItem
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class TripNoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TripNote
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
