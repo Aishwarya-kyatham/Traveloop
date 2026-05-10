@@ -1,15 +1,33 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Globe2, Plane } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
+import { CalendarDays, Copy, Globe2, Plane } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
+import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import { usePublicTrip } from '../hooks/useNotes';
+import { useAuth } from '../context/AuthContext';
 import { formatDateRange, formatShortDate } from '../lib/formatters';
+import tripService from '../services/tripService';
 
 const PublicTripView = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { token } = useParams();
+  const { isAuthenticated } = useAuth();
   const { data: trip, isLoading, error } = usePublicTrip(token);
+
+  const cloneMutation = useMutation({
+    mutationFn: () => tripService.cloneTrip(trip.id),
+    onSuccess: (cloned) => {
+      toast.success('Trip copied to your library!');
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      navigate(`/trip/${cloned.id}`);
+    },
+    onError: () => toast.error('Failed to copy trip. Make sure you are logged in.'),
+  });
 
   if (isLoading) {
     return (
@@ -33,6 +51,20 @@ const PublicTripView = () => {
         <div className="section-label mx-auto mb-4 w-fit"><Globe2 className="h-3.5 w-3.5" /> Shared itinerary</div>
         <h1 className="text-5xl font-extrabold text-white">{trip.title}</h1>
         <p className="mt-4 text-sm text-slate-400">{formatDateRange(trip.start_date, trip.end_date)} · {trip.destinations?.length || 0} destinations</p>
+        
+        {isAuthenticated ? (
+          <div className="mt-8">
+            <Button size="lg" onClick={() => cloneMutation.mutate()} loading={cloneMutation.isPending}>
+              <Copy className="h-4 w-4" /> Copy trip to my library
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-8">
+            <Link to="/register">
+              <Button size="lg">Sign up to copy this trip</Button>
+            </Link>
+          </div>
+        )}
       </section>
 
       <div className="mx-auto max-w-4xl">
