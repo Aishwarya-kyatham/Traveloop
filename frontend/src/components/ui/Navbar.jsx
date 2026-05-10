@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Laptop, LogOut, Map, Menu, Moon, Plane, Sun, User2, X } from 'lucide-react';
+import { ChevronDown, Laptop, LogOut, Map, Menu, Moon, Plane, Search as SearchIcon, Sun, User2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import Button from './Button';
@@ -14,6 +14,7 @@ const guestLinks = [
 
 const appLinks = [
   { label: 'Explore', path: '/dashboard', icon: Map },
+  { label: 'Search', path: '/search', icon: SearchIcon },
   { label: 'My Trips', path: '/trips', icon: Plane },
   { label: 'Profile', path: '/profile', icon: User2 },
 ];
@@ -70,6 +71,9 @@ const Navbar = () => {
   const ThemeIcon = themeIcon;
   const nextTheme = theme === 'system' ? 'dark' : theme === 'dark' ? 'light' : 'system';
 
+  const isLanding = location.pathname === '/';
+  const showAppLinks = isAuthenticated && !isLanding;
+
   return (
     <header className="theme-nav fixed inset-x-0 top-0 z-50">
       <Container className="flex h-20 items-center justify-between">
@@ -85,7 +89,7 @@ const Navbar = () => {
           </Link>
 
           <nav className="hidden items-center gap-2 md:flex">
-            {(isAuthenticated ? appLinks : guestLinks).map((item) => (
+            {(showAppLinks ? appLinks : guestLinks).map((item) => (
               'path' in item ? (
                 <Link
                   key={item.path}
@@ -122,7 +126,7 @@ const Navbar = () => {
           >
             <ThemeIcon className="h-4 w-4" />
           </button>
-          {isAuthenticated ? (
+          {showAppLinks ? (
             <div className="relative" ref={profileRef}>
               <button
                 type="button"
@@ -164,8 +168,14 @@ const Navbar = () => {
             </div>
           ) : (
             <>
-              <Link to="/login"><Button variant="ghost">Login</Button></Link>
-              <Link to="/register"><Button>Get Started</Button></Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard"><Button>Dashboard</Button></Link>
+              ) : (
+                <>
+                  <Link to="/login"><Button variant="ghost">Login</Button></Link>
+                  <Link to="/register"><Button>Get Started</Button></Link>
+                </>
+              )}
             </>
           )}
         </div>
@@ -189,7 +199,7 @@ const Navbar = () => {
             >
               Theme: {theme}
             </button>
-            {(isAuthenticated ? appLinks : guestLinks).map((item) => (
+            {(showAppLinks ? appLinks : guestLinks).map((item) => (
               'path' in item ? (
                 <Link key={item.path} to={item.path} className="rounded-2xl px-4 py-3 text-sm font-semibold theme-text-secondary hover:bg-white/5 hover:text-white">
                   {item.label}
@@ -205,7 +215,7 @@ const Navbar = () => {
                 </button>
               )
             ))}
-            {isAuthenticated ? (
+            {showAppLinks ? (
               <>
                 <Link to="/profile" className="rounded-2xl px-4 py-3 text-sm font-semibold theme-text-secondary hover:bg-white/5 hover:text-white">
                   Account settings
@@ -216,8 +226,14 @@ const Navbar = () => {
               </>
             ) : (
               <div className="flex gap-3 pt-2">
-                <Link to="/login" className="flex-1"><Button variant="secondary" className="w-full">Login</Button></Link>
-                <Link to="/register" className="flex-1"><Button className="w-full">Get Started</Button></Link>
+                {isAuthenticated ? (
+                  <Link to="/dashboard" className="flex-1"><Button className="w-full">Dashboard</Button></Link>
+                ) : (
+                  <>
+                    <Link to="/login" className="flex-1"><Button variant="secondary" className="w-full">Login</Button></Link>
+                    <Link to="/register" className="flex-1"><Button className="w-full">Get Started</Button></Link>
+                  </>
+                )}
               </div>
             )}
           </Container>

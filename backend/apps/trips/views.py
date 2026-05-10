@@ -47,6 +47,61 @@ class TripViewSet(viewsets.ModelViewSet):
             'share_url': f"/share/{trip.share_token}",
         })
 
+    @action(detail=True, methods=['post'], url_path='clone')
+    def clone_trip(self, request, pk=None):
+        original = self.get_object()
+        
+        with transaction.atomic():
+            # Clone Trip
+            cloned_trip = Trip.objects.create(
+                user=request.user,
+                title=f"Copy of {original.title}",
+                start_date=original.start_date,
+                end_date=original.end_date,
+                budget_limit=original.budget_limit,
+                cover_image=original.cover_image,
+                is_public=False
+            )
+            
+            # Clone Destinations, Days, Activities
+            for dest in original.destinations.all():
+                new_dest = TripDestination.objects.create(
+                    trip=cloned_trip,
+                    city_name=dest.city_name,
+                    arrival_date=dest.arrival_date,
+                    departure_date=dest.departure_date,
+                    order_index=dest.order_index
+                )
+                
+                # ItineraryDay is automatically created via signals/save()
+                # But we need to sync activities
+                for original_day in dest.days.all():
+                    # Find the corresponding new day
+                    new_day = cloned_trip.destinations.get(city_name=dest.city_name).days.get(date=original_day.date)
+                    
+                    for activity in original_day.activities.all():
+                        Activity.objects.create(
+                            day=new_day,
+                            title=activity.title,
+                            category=activity.category,
+                            start_time=activity.start_time,
+                            end_time=activity.end_time,
+                            place_id=activity.place_id,
+                            notes=activity.notes,
+                            cost=activity.cost
+                        )
+                        
+            # Clone Packing Items
+            for item in original.packing_items.all():
+                PackingItem.objects.create(
+                    trip=cloned_trip,
+                    label=item.label,
+                    category=item.category,
+                    is_checked=False
+                )
+                
+        return Response(TripSerializer(cloned_trip).data, status=status.HTTP_201_CREATED)
+
 
 class TripDestinationViewSet(viewsets.ModelViewSet):
     serializer_class = TripDestinationSerializer

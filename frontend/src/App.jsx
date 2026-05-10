@@ -20,6 +20,7 @@ import TripNotes from './pages/TripNotes';
 import BudgetView from './pages/BudgetView';
 import ItineraryView from './pages/ItineraryView';
 import PublicTripView from './pages/PublicTripView';
+import Search from './pages/Search';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ function App() {
               <Route path="/trip/:tripId/notes" element={<ProtectedRoute><TripNotes /></ProtectedRoute>} />
               <Route path="/trip/:tripId/budget" element={<ProtectedRoute><BudgetView /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
 
               <Route path="/share/:token" element={<PublicTripView />} />
             </Routes>

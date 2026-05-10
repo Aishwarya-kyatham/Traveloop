@@ -20,6 +20,14 @@ const tripService = {
   deleteTrip: async (id) => {
     await api.delete(`/trips/${id}/`);
   },
+  togglePublic: async (id) => {
+    const response = await api.post(`/trips/${id}/toggle-public/`);
+    return response.data;
+  },
+  cloneTrip: async (id) => {
+    const response = await api.post(`/trips/${id}/clone/`);
+    return response.data;
+  },
 };
 
 export default tripService;

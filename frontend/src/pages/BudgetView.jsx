@@ -87,15 +87,24 @@ const BudgetView = () => {
                   { label: 'Total Planned', value: formatCurrency(budget.total), icon: IndianRupee, highlight: true },
                   { label: 'Budget Limit', value: budget.limit ? formatCurrency(budget.limit) : 'Not set', icon: Landmark },
                   { label: 'Remaining', value: budget.limit ? formatCurrency(budget.limit - budget.total) : 'Track manually', icon: PieChart },
-                ].map(({ label, value, icon: Icon, highlight }) => (
-                  <div key={label} className={`rounded-2xl border ${highlight ? 'border-indigo-500/20 bg-indigo-500/10 shadow-lg shadow-indigo-950/20' : 'border-white/5 bg-white/[0.03]'} p-4 transition-all hover:bg-white/[0.05]`}>
-                    <div className="flex items-center gap-3 text-slate-400 mb-2">
-                      <Icon className={`h-4 w-4 ${highlight ? 'text-indigo-400' : 'text-slate-500'}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+                  { label: 'Daily Avg', value: formatCurrency(budget.total / Math.max(1, budget.byDay.length)), icon: MapPinned },
+                ].map(({ label, value, icon: Icon, highlight }) => {
+                  const isOverBudget = label === 'Remaining' && budget.limit > 0 && budget.total > budget.limit;
+                  return (
+                    <div key={label} className={`rounded-2xl border ${highlight ? 'border-indigo-500/20 bg-indigo-500/10 shadow-lg shadow-indigo-950/20' : 'border-white/5 bg-white/[0.03]'} p-4 transition-all hover:bg-white/[0.05]`}>
+                      <div className="flex items-center justify-between gap-3 text-slate-400 mb-2">
+                        <div className="flex items-center gap-3">
+                          <Icon className={`h-4 w-4 ${highlight ? 'text-indigo-400' : 'text-slate-500'}`} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+                        </div>
+                        {isOverBudget && (
+                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-bold text-red-300">ALERT</span>
+                        )}
+                      </div>
+                      <div className={`text-2xl font-black ${highlight ? 'text-white' : isOverBudget ? 'text-red-400' : 'text-slate-200'}`}>{value}</div>
                     </div>
-                    <div className={`text-2xl font-black ${highlight ? 'text-white' : 'text-slate-200'}`}>{value}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
