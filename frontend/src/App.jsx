@@ -12,6 +12,8 @@ import TripDetails from './pages/TripDetails';
 
 const queryClient = new QueryClient();
 
+import CreateTrip from './pages/CreateTrip';
+
 function App() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: light)');
@@ -35,6 +37,7 @@ function App() {
           <Route path="/verify" element={<VerifyOTP />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trip/:tripId" element={<TripDetails />} />
+          <Route path="/create-trip" element={<CreateTrip />} />
         </Routes>
       </Router>
     </QueryClientProvider>

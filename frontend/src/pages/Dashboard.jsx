@@ -208,7 +208,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── FAB ── */}
-      <button className="db-fab" id="btn-plan-trip" onClick={() => navigate('/Plan a trip!')}>
+      <button className="db-fab" id="btn-plan-trip" onClick={() => navigate('/create-trip')}>
         <Plus size={16} /> Plan a trip
       </button>
 
