@@ -9,10 +9,9 @@ import Register from './pages/Register';
 import VerifyOTP from './pages/VerifyOTP';
 import Dashboard from './pages/Dashboard';
 import TripDetails from './pages/TripDetails';
+import CreateTrip from './pages/CreateTrip';
 
 const queryClient = new QueryClient();
-
-import CreateTrip from './pages/CreateTrip';
 
 function App() {
   useEffect(() => {
